@@ -40,7 +40,7 @@ def name_plot(names: Sequence[str]):
         x="year",
         y="num",
         color="name",
-        labels={"year": "År", "num": "Antal", "name": "Namn"},
+        labels={"year": "År", "num": "Antal födda med namnet", "name": "Namn"},
     )
 
 
