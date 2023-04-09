@@ -1,2 +1,4 @@
 dash==2.9.1
 pandas==2.0.0
+numpy
+nbformat>=4.2.0
