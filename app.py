@@ -5,8 +5,7 @@
 
 from typing import Sequence
 import dash
-import dash_core_components as dcc
-from dash import html
+from dash import dcc, html
 from dash.dependencies import Input, Output
 import plotly.express as px
 
@@ -49,7 +48,7 @@ def name_plot(names: Sequence[str]):
 def span_plot(slider):
     min_year = slider[0]
     max_year = slider[1]
-    df_names = df_spans.query("top_year >= @min_year and top_year <= @max_year")
+    df_names = df_spans.query("top_year >= @min_year and top_year <= @max_year").copy()
     df_names["err_x"] = df_names.max_year - df_names.top_year
     df_names["err_x_minus"] = df_names.top_year - df_names.min_year
     df_names["text"] = df_names.apply(
@@ -89,11 +88,11 @@ app.layout = html.Div(
             max=2020,
             step=1,
             value=(1990, 2020),
-            marks=range(1930, 2020, 5),
+            marks={y: f"{y}" for y in range(1930, 2020, 5)},
         ),
         dcc.Graph(id="span-graph"),
     ]
 )
 
 if __name__ == "__main__":
-    app.run_server(debug=True, port=8051)
+    app.run_server(host="0.0.0.0", debug=True, port=8051)
