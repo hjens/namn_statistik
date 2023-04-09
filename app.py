@@ -24,7 +24,7 @@ app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 df_boys = get_names("data/BE0001AM_20210507-184020.csv")
 df_girls = get_names("data/BE0001AM_20210507-183718.csv")
 df_all = pd.concat([df_boys, df_girls])
-all_names = df_all.name.unique()
+all_names = df_all.name.sort_values().unique()
 
 df_spans = pd.read_csv("data/names_with_year_spans.csv")
 
@@ -79,7 +79,7 @@ def span_plot(slider):
 app.layout = html.Div(
     children=[
         html.H2(children="Antal födda per år"),
-        dcc.Dropdown(all_names, multi=True, value=[], id="name-dropdown"),
+        dcc.Dropdown(all_names, multi=True, value=[all_names[0]], id="name-dropdown"),
         dcc.Graph(id="name-graph"),
         html.H2(children="Årsintervall som innehåller en tredjedel av alla med namnet"),
         dcc.RangeSlider(
