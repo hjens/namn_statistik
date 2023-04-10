@@ -35,6 +35,9 @@ df_all = pd.concat([df_boys, df_girls])
 all_names = df_all.name.sort_values().unique()
 
 df_spans = pd.read_csv("data/names_with_year_spans.csv")
+df_spans["span_descr"] = df_spans.apply(
+    lambda x: f"{x.min_year} - {x.max_year}", axis=1
+)
 
 
 @app.callback(Output("name-graph", "figure"), Input("name-dropdown", "value"))
@@ -51,15 +54,21 @@ def name_plot(names: Sequence[str]):
 
 
 def top_list(
-    df: pd.DataFrame, column_name: str, format_func: Callable[[Any], str], title: str
+    df: pd.DataFrame,
+    column_name: str,
+    format_func: Callable[[Any], str],
+    title: str,
+    subtitle: str,
 ) -> html.Div:
     def item_text(item):
-        return item["name"] + ": " + format_func(item[column_name])
+        return item["name"] + " (" + format_func(item[column_name]) + ")"
 
     return html.Div(
         children=[
             html.H3(title),
+            subtitle,
             html.Ol(children=[html.Li(item_text(item)) for _, item in df.iterrows()]),
+            # html.Button("Visa", id=),
         ],
         style={"float": "left", "margin": "20px"},
     )
@@ -73,27 +82,47 @@ most_popular_names = top_list(
     .head(5),
     column_name="num",
     format_func=lambda num: "{0:,}".format(num).replace(",", " "),
-    title="Flest bärare",
+    title="Vanligast",
+    subtitle="Flest nu levande bärare av namnet",
 )
 
 oldest_names = top_list(
     df_spans.sort_values(by="top_year").head(5),
     column_name="top_year",
     format_func=lambda y: str(2023 - y) + " år",
-    title="Äldst medianbärare",
+    title="Äldst",
+    subtitle="Vanligaste åldern för bärare av namnet",
 )
 
 youngest_names = top_list(
     df_spans.sort_values(by="top_year", ascending=False).head(5),
     column_name="top_year",
     format_func=lambda y: str(2023 - y) + " år",
-    title="Yngst medianbärare",
+    title="Yngst",
+    subtitle="Vanligaste åldern för bärare av namnet",
+)
+
+shortest_popularity = top_list(
+    df_spans.sort_values(by="std", ascending=True).head(5),
+    column_name="std",
+    format_func=lambda s: f"{s:.2f}",
+    title="Kortast popularitet",
+    subtitle="Lägst standardavvikelse, år från genomsnittligt födelseår",
+)
+
+longest_popularity = top_list(
+    df_spans.sort_values(by="std", ascending=False).head(5),
+    column_name="std",
+    format_func=lambda s: f"{s:.2f}",
+    title="Längst popularitet",
+    subtitle="Högst standardavvikelse, år från genomsnittligt födelseår",
 )
 
 
 app.layout = html.Div(
     children=[
         html.H2(children="Antal födda per år"),
+        "Lägg till fler namn i rutan nedanför.",
         dcc.Dropdown(all_names, multi=True, value=[all_names[0]], id="name-dropdown"),
         dcc.Graph(id="name-graph"),
         html.Div(
@@ -102,6 +131,8 @@ app.layout = html.Div(
                 most_popular_names,
                 oldest_names,
                 youngest_names,
+                shortest_popularity,
+                longest_popularity,
             ],
         ),
     ]
