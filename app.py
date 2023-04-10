@@ -39,10 +39,7 @@ df_spans = pd.read_csv("data/names_with_year_spans.csv")
 
 @app.callback(Output("name-graph", "figure"), Input("name-dropdown", "value"))
 def name_plot(names: Sequence[str]):
-    if names:
-        df_names = df_all.query("name in @names")
-    else:
-        df_names = df_all
+    df_names = df_all.query("name in @names") if names else df_all
     return px.line(
         df_names,
         x="year",
