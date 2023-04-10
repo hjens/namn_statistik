@@ -5,7 +5,7 @@
 
 from typing import Sequence
 import dash
-from dash import dcc, html
+from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output
 import plotly.express as px
 
@@ -13,8 +13,16 @@ import pandas as pd
 
 
 def get_names(filename: str) -> pd.DataFrame:
+    def num_to_int(num):
+        if num == "..":
+            return 0
+        return int(num)
+
     df = pd.read_csv(filename)
-    return df.melt(id_vars=["name"], var_name="year", value_name="num")
+    df = df.melt(id_vars=["name"], var_name="year", value_name="num")
+    df.num = df.num.apply(num_to_int)
+    df.year = df.year.apply(num_to_int)
+    return df
 
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
@@ -41,39 +49,34 @@ def name_plot(names: Sequence[str]):
         y="num",
         color="name",
         labels={"year": "År", "num": "Antal födda med namnet", "name": "Namn"},
-    )
-
-
-@app.callback(Output("span-graph", "figure"), Input("span-slider", "value"))
-def span_plot(slider):
-    min_year = slider[0]
-    max_year = slider[1]
-    df_names = df_spans.query("top_year >= @min_year and top_year <= @max_year").copy()
-    df_names["err_x"] = df_names.max_year - df_names.top_year
-    df_names["err_x_minus"] = df_names.top_year - df_names.min_year
-    df_names["text"] = df_names.apply(
-        lambda x: f"{x['name']} ({x.min_year} - {x.max_year})", axis=1
-    )
-
-    fig_height = max(len(df_names) * 25, 200)
-    fig = px.scatter(
-        df_names.sort_values(by="top_year"),
-        x="top_year",
-        y="name",
-        text="text",
-        error_x_minus="err_x_minus",
-        error_x="err_x",
-        labels={"name": "", "top_year": ""},
         template="simple_white",
-        height=fig_height,
     )
-    fig.update_traces(hovertemplate="<b>%{y}</b>\n%{x}")
-    fig.update_traces(textposition="top center")
-    fig.update_yaxes(visible=False)
-    fig.update_layout(
-        margin=dict(l=20, r=20, t=0, b=0),
-    )
-    return fig
+
+
+def top_list(df: pd.DataFrame, column_name: str) -> html.Ol:
+    def item_text(item):
+        return item["name"] + ": " + str(item[column_name])
+
+    return html.Ol(children=[html.Li(item_text(item)) for _, item in df.iterrows()])
+
+
+most_popular_names = top_list(
+    df_all.groupby("name")["num"]
+    .sum()
+    .sort_values(ascending=False)
+    .reset_index()
+    .head(5),
+    column_name="num",
+)
+
+oldest_names = top_list(
+    df_spans.sort_values(by="top_year").head(5), column_name="top_year"
+)
+
+youngest_names = top_list(
+    df_spans.sort_values(by="top_year", ascending=False).head(5),
+    column_name="top_year",
+)
 
 
 app.layout = html.Div(
@@ -81,16 +84,13 @@ app.layout = html.Div(
         html.H2(children="Antal födda per år"),
         dcc.Dropdown(all_names, multi=True, value=[all_names[0]], id="name-dropdown"),
         dcc.Graph(id="name-graph"),
-        html.H2(children="Årsintervall som innehåller en tredjedel av alla med namnet"),
-        dcc.RangeSlider(
-            id="span-slider",
-            min=1930,
-            max=2020,
-            step=1,
-            value=(1990, 2020),
-            marks={y: f"{y}" for y in range(1930, 2020, 5)},
-        ),
-        dcc.Graph(id="span-graph"),
+        html.H2("Topplistor"),
+        html.H3("Namnen med flest bärare"),
+        most_popular_names,
+        html.H3("Namnen med äldst bärare"),
+        oldest_names,
+        html.H3("Namnen med yngst bärare"),
+        youngest_names,
     ]
 )
 
