@@ -3,7 +3,7 @@
 # Run this app with `python app.py` and
 # visit http://127.0.0.1:8050/ in your web browser.
 
-from typing import Sequence
+from typing import Any, Callable, Sequence
 import dash
 from dash import dcc, html, dash_table
 from dash.dependencies import Input, Output
@@ -50,11 +50,19 @@ def name_plot(names: Sequence[str]):
     )
 
 
-def top_list(df: pd.DataFrame, column_name: str) -> html.Ol:
+def top_list(
+    df: pd.DataFrame, column_name: str, format_func: Callable[[Any], str], title: str
+) -> html.Div:
     def item_text(item):
-        return item["name"] + ": " + str(item[column_name])
+        return item["name"] + ": " + format_func(item[column_name])
 
-    return html.Ol(children=[html.Li(item_text(item)) for _, item in df.iterrows()])
+    return html.Div(
+        children=[
+            html.H3(title),
+            html.Ol(children=[html.Li(item_text(item)) for _, item in df.iterrows()]),
+        ],
+        style={"float": "left", "margin": "20px"},
+    )
 
 
 most_popular_names = top_list(
@@ -64,15 +72,22 @@ most_popular_names = top_list(
     .reset_index()
     .head(5),
     column_name="num",
+    format_func=lambda num: "{0:,}".format(num).replace(",", " "),
+    title="Flest bärare",
 )
 
 oldest_names = top_list(
-    df_spans.sort_values(by="top_year").head(5), column_name="top_year"
+    df_spans.sort_values(by="top_year").head(5),
+    column_name="top_year",
+    format_func=lambda y: str(2023 - y) + " år",
+    title="Äldst medianbärare",
 )
 
 youngest_names = top_list(
     df_spans.sort_values(by="top_year", ascending=False).head(5),
     column_name="top_year",
+    format_func=lambda y: str(2023 - y) + " år",
+    title="Yngst medianbärare",
 )
 
 
@@ -81,13 +96,14 @@ app.layout = html.Div(
         html.H2(children="Antal födda per år"),
         dcc.Dropdown(all_names, multi=True, value=[all_names[0]], id="name-dropdown"),
         dcc.Graph(id="name-graph"),
-        html.H2("Topplistor"),
-        html.H3("Namnen med flest bärare"),
-        most_popular_names,
-        html.H3("Namnen med äldst bärare"),
-        oldest_names,
-        html.H3("Namnen med yngst bärare"),
-        youngest_names,
+        html.Div(
+            children=[
+                html.H2("Topplistor"),
+                most_popular_names,
+                oldest_names,
+                youngest_names,
+            ],
+        ),
     ]
 )
 
