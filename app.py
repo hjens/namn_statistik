@@ -53,6 +53,18 @@ def name_plot(names: Sequence[str]):
     )
 
 
+@app.callback(
+    Output("name-dropdown", "value"),
+    Input({"type": "top-list-button", "names": dash.ALL}, "n_clicks"),
+)
+def set_names(n_clicks):
+    button_clicked = dash.ctx.triggered_id
+    if button_clicked:
+        names = button_clicked["names"].split(",")
+        return names
+    return "Adam"
+
+
 def top_list(
     df: pd.DataFrame,
     column_name: str,
@@ -68,9 +80,46 @@ def top_list(
             html.H3(title),
             subtitle,
             html.Ol(children=[html.Li(item_text(item)) for _, item in df.iterrows()]),
-            # html.Button("Visa", id=),
+            html.Button(
+                "Visa",
+                id={"type": "top-list-button", "names": ",".join(df["name"])},
+            ),
         ],
         style={"float": "left", "margin": "20px"},
+    )
+
+
+def make_table(df: pd.DataFrame) -> dash.dash_table.DataTable:
+    columns = {
+        "name": "Namn",
+        "top_year": "Toppår",
+        "std": "Standardavvikelse",
+        "span_descr": "Intervall som innehåller 30% av alla med namnet",
+        "total_num": "Antal bärare",
+    }
+    df["std"] = df["std"].round(decimals=2)
+    return dash_table.DataTable(
+        df_spans.to_dict("records"),
+        [{"name": columns.get(i, i), "id": i} for i in columns.keys()],
+        style_cell={
+            "height": "auto",
+            "textAlign": "left",
+            "minWidth": "100px",
+            "width": "100px",
+            "maxWidth": "100px",
+            "whiteSpace": "normal",
+        },
+        style_data_conditional=[
+            {
+                "if": {"row_index": "odd"},
+                "backgroundColor": "rgb(220, 220, 220)",
+            }
+        ],
+        style_header={"fontWeight": "bold"},
+        sort_action="native",
+        filter_action="native",
+        sort_mode="multi",
+        style_as_list_view=True,
     )
 
 
@@ -118,6 +167,7 @@ longest_popularity = top_list(
     subtitle="Högst standardavvikelse, år från genomsnittligt födelseår",
 )
 
+table = make_table(df_spans)
 
 app.layout = html.Div(
     children=[
@@ -134,6 +184,13 @@ app.layout = html.Div(
                 shortest_popularity,
                 longest_popularity,
             ],
+        ),
+        html.Div(
+            children=[
+                html.H2("All data"),
+                table,
+            ],
+            style={"width": "50%", "clear": "left"},
         ),
     ]
 )

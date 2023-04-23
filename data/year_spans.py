@@ -19,7 +19,6 @@ def year_span_for_name(df_all: pd.DataFrame, name: str, target_fraction: float):
 
     df_name = df_all.query("name == @name")
     top_year = df_name.year.values[df_name.num.argmax()]
-    mean_year = df_name.year.mean()
     years = set((top_year,))
     f = fraction(df_name, years)
     while f < target_fraction:
@@ -34,7 +33,7 @@ def year_span_for_name(df_all: pd.DataFrame, name: str, target_fraction: float):
         elif left_year >= df_name.year.min():
             years.add(left_year)
         f = fraction(df_name, years)
-    return years, f, top_year, mean_year
+    return years, f, top_year
 
 
 def std_for_name(df_all: pd.DataFrame, name: str) -> float:
@@ -42,7 +41,7 @@ def std_for_name(df_all: pd.DataFrame, name: str) -> float:
     years = np.concatenate(
         [np.ones(data.num) * data.year for _, data in df_name.iterrows()]
     )
-    return years.std()
+    return years.std(), df_name.num.sum()
 
 
 if __name__ == "__main__":
@@ -61,9 +60,9 @@ if __name__ == "__main__":
     name_std = []
 
     for name in df_all.name.unique():
-        span30, frac30, top_year, mean_year = year_span_for_name(df_all, name, 0.33)
+        span30, frac30, top_year = year_span_for_name(df_all, name, 0.33)
         span_length = len(span30)
-        std = std_for_name(df_all, name)
+        std, total_num = std_for_name(df_all, name)
         name_std.append(
             {
                 "name": name,
@@ -72,7 +71,7 @@ if __name__ == "__main__":
                 "min_year": min(span30),
                 "max_year": max(span30),
                 "top_year": top_year,
-                "mean_year": mean_year,
+                "total_num": total_num,
             }
         )
     df_name_std = pd.DataFrame(name_std)
