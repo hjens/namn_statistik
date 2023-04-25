@@ -27,7 +27,8 @@ def get_names(filename: str) -> pd.DataFrame:
 
 external_stylesheets = ["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 
-app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+app = dash.Dash(__name__, external_stylesheets=external_stylesheets, update_title=None)
+app.title = "Namnstatistik"
 
 df_boys = get_names("data/BE0001AM_20210507-184020.csv")
 df_girls = get_names("data/BE0001AM_20210507-183718.csv")
